@@ -57,6 +57,7 @@ public class EvoParameters {
     private String executionMode;
     private int guiWidth;
     private int guiHeight;
+    private boolean tcuEnabled;
 
 
     public static EvoParameters getInstance(){
@@ -221,5 +222,13 @@ public class EvoParameters {
 
     public void setGuiHeight(int guiHeight) {
         this.guiHeight = guiHeight;
+    }
+
+    public boolean isTcuEnabled() {
+        return tcuEnabled;
+    }
+
+    public void setTcuEnabled(boolean tcuEnabled) {
+        this.tcuEnabled = tcuEnabled;
     }
 }

@@ -52,6 +52,8 @@ public class EvoStartDialog extends JDialog {
     private JButton evosuiteSelectionButton;
     private JRadioButton mavenRadioButton;
     private JRadioButton evosuiteRadioButton;
+    private JRadioButton testCaseYes;
+    private JRadioButton testCaseNo;
 
     private volatile boolean wasOK = false;
     private volatile EvoParameters params;
@@ -82,6 +84,9 @@ public class EvoStartDialog extends JDialog {
         } else {
             evosuiteRadioButton.setSelected(true);
         }
+
+        testCaseYes.setSelected(false);
+        testCaseNo.setSelected(true);
         checkExecution();
     }
 
@@ -148,6 +153,18 @@ public class EvoStartDialog extends JDialog {
                 onSelectEvosuite();
             }
         });
+        testCaseYes.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                onSelectTestCase(true);
+            }
+        });
+        testCaseNo.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                onSelectTestCase(false);
+            }
+        });
 
         setPreferredSize(new Dimension(EvoParameters.getInstance().getGuiWidth(), EvoParameters.getInstance().getGuiHeight()));
     }
@@ -176,6 +193,23 @@ public class EvoStartDialog extends JDialog {
             params.setEvosuiteJarLocation(path);
             evosuiteLocationTesxField.setText(path);
         }
+    }
+
+    private void onSelectTestCase(boolean selected) {
+        if (selected) {
+            testCaseNo.setSelected(false);
+
+            LoginDialog dialog = new LoginDialog();
+            dialog.initFields(project, EvoParameters.getInstance());
+            dialog.setModal(true);
+            dialog.setLocationRelativeTo(this);
+            dialog.pack();
+            dialog.setVisible(true);
+
+        } else {
+            testCaseYes.setSelected(false);
+        }
+        params.setTcuEnabled(selected);
     }
 
     private void checkExecution() {
@@ -429,4 +463,6 @@ public class EvoStartDialog extends JDialog {
     public boolean isWasOK() {
         return wasOK;
     }
+
+    public boolean isTcuEnabled() { return params.isTcuEnabled(); }
 }

@@ -30,6 +30,10 @@
         <rowspec value="center:15dlu:noGrow"/>
         <rowspec value="top:3dlu:noGrow"/>
         <rowspec value="center:15dlu:noGrow"/>
+        <rowspec value="top:3dlu:noGrow"/>
+        <rowspec value="center:max(d;4px):noGrow"/>
+        <rowspec value="top:3dlu:noGrow"/>
+        <rowspec value="center:max(d;4px):noGrow"/>
         <colspec value="fill:170px:grow"/>
         <colspec value="fill:13px:noGrow"/>
         <colspec value="fill:200px:grow(5.0)"/>
@@ -233,6 +237,33 @@
               <text value=""/>
             </properties>
           </component>
+          <component id="1b4ef" class="javax.swing.JLabel">
+            <constraints>
+              <grid row="14" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+              <forms/>
+            </constraints>
+            <properties>
+              <text value="Test case undestandability:"/>
+            </properties>
+          </component>
+          <component id="7fe29" class="javax.swing.JRadioButton" binding="testCaseYes" default-binding="true">
+            <constraints>
+              <grid row="14" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+              <forms/>
+            </constraints>
+            <properties>
+              <text value="Yes"/>
+            </properties>
+          </component>
+          <component id="f5f60" class="javax.swing.JRadioButton" binding="testCaseNo" default-binding="true">
+            <constraints>
+              <grid row="16" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+              <forms/>
+            </constraints>
+            <properties>
+              <text value="No"/>
+            </properties>
+          </component>
         </children>
       </grid>
       <grid id="94766" layout-manager="FormLayout">
@@ -280,6 +311,10 @@
     <group name="executionButtonGroup">
       <member id="a800a"/>
       <member id="6b10c"/>
+    </group>
+    <group name="buttonGroup2">
+      <member id="7fe29"/>
+      <member id="f5f60"/>
     </group>
   </buttonGroups>
 </form>
