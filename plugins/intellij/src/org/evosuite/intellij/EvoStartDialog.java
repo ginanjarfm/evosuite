@@ -54,6 +54,9 @@ public class EvoStartDialog extends JDialog {
     private JRadioButton evosuiteRadioButton;
     private JRadioButton testCaseYes;
     private JRadioButton testCaseNo;
+    private JEditorPane buttonPanel;
+    private JTextField metricsField;
+    private JButton selectMetricsButton;
 
     private volatile boolean wasOK = false;
     private volatile EvoParameters params;
@@ -85,8 +88,10 @@ public class EvoStartDialog extends JDialog {
             evosuiteRadioButton.setSelected(true);
         }
 
-        testCaseYes.setSelected(false);
-        testCaseNo.setSelected(true);
+        testCaseYes.setSelected(params.isTcuEnabled());
+        testCaseNo.setSelected(!params.isTcuEnabled());
+        metricsField.setEnabled(params.isTcuEnabled());
+        selectMetricsButton.setEnabled(params.isTcuEnabled());
         checkExecution();
     }
 
@@ -153,6 +158,12 @@ public class EvoStartDialog extends JDialog {
                 onSelectEvosuite();
             }
         });
+        selectMetricsButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                onSelectMetrics();
+            }
+        });
         testCaseYes.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
@@ -195,19 +206,61 @@ public class EvoStartDialog extends JDialog {
         }
     }
 
+    private void onSelectMetrics() {
+        JFileChooser fc = new JFileChooser();
+        fc.setAcceptAllFileFilterUsed(false);
+        fc.setFileFilter(new FileFilter() {
+            @Override
+            public boolean accept(File file) {
+                if (file.isDirectory()) {
+                    return true; // need to be able to navigate through folders
+                }
+                return checkIfValidTcuJar(file);
+            }
+
+            @Override
+            public String getDescription() {
+                return "Test Case Metrics executable jar";
+            }
+        });
+
+        int returnVal = fc.showOpenDialog(null);
+        if (returnVal == JFileChooser.APPROVE_OPTION) {
+            String path = fc.getSelectedFile().getAbsolutePath();
+            params.setTcuJarLocation(path);
+            metricsField.setText(path);
+        }
+    }
+
     private void onSelectTestCase(boolean selected) {
         if (selected) {
-            testCaseNo.setSelected(false);
-
             LoginDialog dialog = new LoginDialog();
             dialog.initFields(project, EvoParameters.getInstance());
             dialog.setModal(true);
             dialog.setLocationRelativeTo(this);
             dialog.pack();
             dialog.setVisible(true);
+            dialog.addWindowListener(new WindowAdapter() {
+                @Override
+                public void windowClosed(WindowEvent e) {
+                if (!params.getTcuParameters().isEmpty()) {
+                    metricsField.setEnabled(true);
+                    selectMetricsButton.setEnabled(true);
+                    params.setTcuEnabled(true);
 
+                    testCaseNo.setSelected(false);
+                } else {
+                    testCaseNo.setSelected(true);
+                    testCaseYes.setSelected(false);
+                }
+                }
+            });
         } else {
             testCaseYes.setSelected(false);
+
+            metricsField.setEnabled(false);
+            selectMetricsButton.setEnabled(false);
+            params.setTcuEnabled(false);
         }
         params.setTcuEnabled(selected);
     }
@@ -347,6 +400,20 @@ public class EvoStartDialog extends JDialog {
         return name.startsWith("evosuite") && name.endsWith(".jar");
     }
 
+    private boolean checkIfValidTcuJar(File file) {
+        if (file == null || !file.exists() || file.isDirectory()) {
+            return false;
+        }
+        String name = file.getName().toLowerCase();
+
+        if(Arrays.asList("runtime","standalone","client","plugin","test","generated").stream()
+                .anyMatch(k -> name.contains(k))){
+            return false;
+        }
+
+        return name.startsWith("metrics") && name.endsWith(".jar");
+    }
+
     private boolean checkIfValidMaven(File file) {
         if (file == null || !file.exists() || file.isDirectory()) {
             return false;
@@ -388,7 +455,7 @@ public class EvoStartDialog extends JDialog {
         String mvn = mavenField.getText();
         String javaHome = javaHomeField.getText();
         String evosuiteJar = evosuiteLocationTesxField.getText();
-
+        String tcuJar = metricsField.getText();
 
         List<String> errors = new ArrayList<>();
 
@@ -428,6 +495,12 @@ public class EvoStartDialog extends JDialog {
             params.setJavaHome(javaHome);
         }
 
+        if (params.isTcuEnabled() && !checkIfValidTcuJar(new File(tcuJar))) {
+            errors.add("Invalid Test Case Metrics executable jar: choose a correct metrics*.jar one");
+        } else {
+            params.setTcuJarLocation(tcuJar);
+        }
+
         params.setFolder(dir);
         params.setGuiWidth(this.getWidth());
         params.setGuiHeight(this.getHeight());
@@ -463,6 +536,4 @@ public class EvoStartDialog extends JDialog {
     public boolean isWasOK() {
         return wasOK;
     }
-
-    public boolean isTcuEnabled() { return params.isTcuEnabled(); }
 }

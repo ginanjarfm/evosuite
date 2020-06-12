@@ -38,6 +38,8 @@ public class EvoParameters {
     public static final String MVN_LOCATION = "mvn_location";
     public static final String JAVA_HOME = "JAVA_HOME";
     public static final String EVOSUITE_JAR_LOCATION = "evosuite_jar_location";
+    public static final String TCU_JAR_LOCATION = "tcu_jar_location";
+    public static final String TCU_PARAMETERS = "tcu_params";
     public static final String EXECUTION_MODE = "execution_mode";
     public static final String GUI_DIALOG_WIDTH = "evosuite_gui_dialog_width";
     public static final String GUI_DIALOG_HEIGHT = "evosuite_gui_dialog_height";
@@ -54,6 +56,8 @@ public class EvoParameters {
     private String mvnLocation;
     private String javaHome;
     private String evosuiteJarLocation;
+    private String tcuJarLocation;
+    private String tcuParameters;
     private String executionMode;
     private int guiWidth;
     private int guiHeight;
@@ -82,6 +86,8 @@ public class EvoParameters {
         javaHome = p.getValue(JAVA_HOME, envJavaHome!=null ? envJavaHome : "");
         mvnLocation = p.getValue(MVN_LOCATION,"");
         evosuiteJarLocation = p.getValue(EVOSUITE_JAR_LOCATION,"");
+        tcuJarLocation = p.getValue(TCU_JAR_LOCATION, "");
+        tcuParameters = p.getValue(TCU_PARAMETERS, "");
         executionMode = p.getValue(EXECUTION_MODE,EXECUTION_MODE_MVN);
 
         guiWidth = p.getInt(GUI_DIALOG_WIDTH, 570);
@@ -97,6 +103,8 @@ public class EvoParameters {
         p.setValue(JAVA_HOME,javaHome);
         p.setValue(MVN_LOCATION,getPossibleLocationForMvn());
         p.setValue(EVOSUITE_JAR_LOCATION,evosuiteJarLocation);
+        p.setValue(TCU_JAR_LOCATION, tcuJarLocation);
+        p.setValue(TCU_PARAMETERS, tcuParameters);
         p.setValue(EXECUTION_MODE,executionMode);
         p.setValue(GUI_DIALOG_WIDTH,""+guiWidth);
         p.setValue(GUI_DIALOG_HEIGHT,""+guiHeight);
@@ -198,6 +206,22 @@ public class EvoParameters {
 
     public void setEvosuiteJarLocation(String evosuiteJarLocation) {
         this.evosuiteJarLocation = evosuiteJarLocation;
+    }
+
+    public String getTcuJarLocation() {
+        return tcuJarLocation;
+    }
+
+    public void setTcuJarLocation(String tcuJarLocation) {
+        this.tcuJarLocation = tcuJarLocation;
+    }
+
+    public String getTcuParameters() {
+        return tcuParameters;
+    }
+
+    public void setTcuParameters(String tcuParameters) {
+        this.tcuParameters = tcuParameters;
     }
 
     public String getExecutionMode() {

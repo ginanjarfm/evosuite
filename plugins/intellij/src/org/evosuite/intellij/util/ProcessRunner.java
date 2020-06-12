@@ -24,6 +24,7 @@ import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.project.Project;
 import org.evosuite.intellij.EvoParameters;
 import org.jetbrains.annotations.NotNull;
+import org.json.JSONObject;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -39,6 +40,42 @@ import java.util.Set;
  */
 public class ProcessRunner {
 
+    public static Process executeTcu(Project project, AsyncGUINotifier notifier, EvoParameters params, File dir,
+                                     Set<String> classes, int managerPort) {
+        List<String> list;
+        list = getTcuJarCommand(project, dir, params, classes, managerPort);
+
+        String[] command = list.toArray(new String[list.size()]);
+
+        String concat = "Going to execute command:\n";
+        for(String c : command){
+            concat += c + "  ";
+        }
+        concat += "\nin folder: "+dir.getAbsolutePath();
+        concat += "\n";
+
+        System.out.println(concat);
+        notifier.printOnConsole(concat);//FIXME: done here it gets cleared by IntelliJ... really fucking annoying
+
+        try {
+            ProcessBuilder builder = new ProcessBuilder();
+            builder.directory(dir);
+            builder.command(command);
+
+            Map<String,String> map = builder.environment();
+            map.put("JAVA_HOME", params.getJavaHome());
+
+            Process p =  builder.start();
+            notifier.attachProcess(p);
+
+            notifier.printOnConsole(concat); //this doesn't work either...
+
+            return p;
+        } catch (IOException e) {
+            notifier.failed("Failed to execute Test Case Metrics: "+e.getMessage());
+            return null;
+        }
+    }
 
     public static Process execute(Project project, AsyncGUINotifier notifier, EvoParameters params, File dir,
                                   Set<String> classes, int managerPort) {
@@ -81,6 +118,68 @@ public class ProcessRunner {
             return null;
         }
 
+    }
+
+    private static List<String> getTcuJarCommand( Project project, File dir, EvoParameters params,
+                                                  Set<String> classes, int port) throws IllegalArgumentException{
+        List<String> list = new ArrayList<>();
+        String java = "java";
+        if(Utils.isWindows()) {
+            java += ".exe";
+        }
+        list.add(params.getJavaHome() + File.separator + "bin" + File.separator + java);
+        list.add("-jar");
+        list.add(params.getTcuJarLocation());
+
+        JSONObject metric = new JSONObject(params.getTcuParameters());
+
+        list.add("-source");
+        list.add(params.getFolder());
+        list.add("-work");
+        list.add(String.valueOf(metric.get("work")));
+        list.add("-ut");
+        list.add(metric.getString("UT"));
+        list.add("-cs");
+        list.add(String.valueOf(metric.get("CS")));
+        list.add("-prog");
+        list.add(String.valueOf(metric.get("prog")));
+        list.add("-lang");
+        list.add(String.valueOf(metric.get("lang")));
+        list.add("-quiz");
+        list.add(String.valueOf(metric.get("quiz")));
+        list.add("-identifier");
+        list.add(metric.getString("username"));
+        list.add("-output");
+        list.add(params.getFolder());
+
+        //No need to specify target, as we do specify the CUT list
+        //list.add("-target");
+        //list.add(target);
+        if(classes==null || classes.isEmpty()){
+            //if we want to change it, we need to handle 'target'
+            throw new IllegalArgumentException("Need to specify class list");
+        }
+
+        if(dir==null || !dir.exists()){
+            throw new IllegalArgumentException("Invalid module dir");
+        }
+
+        String folderPath = dir.getAbsolutePath();
+
+        Module module = null;
+        for(Module m : ModuleManager.getInstance(project).getModules()){
+            String modulePath = Utils.getFolderLocation(m);
+            if(folderPath.equals(modulePath)){
+                module = m;
+                break;
+            }
+        }
+
+        if(module == null){
+            throw new IllegalArgumentException("Cannot determine module for "+folderPath);
+        }
+
+        return list;
     }
 
     private static List<String> getEvoJarCommand( Project project, File dir, EvoParameters params,

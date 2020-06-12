@@ -152,14 +152,17 @@ public class LoginDialog extends JDialog {
         if (signIn(username, password)) {
             getMetrics();
 
-            saveParameters();
+            saveParameters(username);
 
             dispose();
         }
     }
 
-    private void saveParameters() {
-
+    private void saveParameters(String username) {
+        if (metric != null) {
+            metric.put("username", username);
+            params.setTcuParameters(metric.toString());
+        }
     }
 
     private void onCancel() {

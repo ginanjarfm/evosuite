@@ -138,6 +138,86 @@ public class EvoSuiteExecutor {
         ProgressManager.getInstance().runProcessWithProgressAsynchronously(task, progressIndicator);
     }
 
+    private void executeOnTcuModules(Map<String, Set<String>> suts, Project project, AsyncGUINotifier notifier,
+                                     EvoParameters params, ProgressIndicator progressIndicator) {
+
+        thread = Thread.currentThread();
+
+        int modules = suts.keySet().size();
+        int total = suts.values().stream().mapToInt(Set::size).sum();
+        String msg = "Going to generate tests in "+modules+" module(s) for a total of "+total+ " classes";
+        System.out.println(msg);
+        notifier.printOnConsole(msg+"\n");
+
+        if(modules > 1) {
+
+            for(Map.Entry<String,Set<String>> entry : suts.entrySet()){
+                notifier.printOnConsole("Module "+entry.getKey()+" -> to test "+entry.getValue().size()+" class(es) \n");
+            }
+
+            notifier.success(msg);
+        }
+
+        for (String modulePath : suts.keySet()) {
+
+            if(Thread.currentThread().isInterrupted()){
+                return;
+            }
+            progressIndicator.checkCanceled();
+
+            final Module module = Utils.getModule(project,modulePath);
+            if(module == null){
+                notifier.failed("Failed to determine IntelliJ module for "+modulePath);
+                return;
+            } else {
+                if (! Utils.compileModule(project, notifier, module)){
+                    return;
+                }
+            }
+
+            File dir = new File(modulePath);
+            Process p;
+
+            SpawnProcessKeepAliveCheckerIntelliJ checker = new SpawnProcessKeepAliveCheckerIntelliJ(notifier);
+
+            try {
+                int port = checker.startServer();
+
+                p = ProcessRunner.executeTcu(project, notifier, params, dir, suts.get(modulePath), port);
+                if (p == null) {
+                    return;
+                }
+
+                boolean done = false;
+
+                while (!done) {
+                    try {
+                   /*
+                    this is blocking, which is fine, as we want it
+                    to run till completion, unless manually stopped
+                     */
+                        done = p.waitFor(1, TimeUnit.SECONDS);
+                    } catch (InterruptedException e) {
+                        p.destroy();
+                        progressIndicator.checkCanceled();
+                        return;
+                    }
+                    progressIndicator.checkCanceled();
+                }
+            } finally {
+                notifier.detachLastProcess();
+                checker.stopServer();
+            }
+
+            int res = p.exitValue();
+            if (res != 0) {
+                notifier.failed("EvoSuite ended abruptly");
+                return;
+            }
+        }
+        VirtualFileManager.getInstance().asyncRefresh(null);
+        notifier.success("EvoSuite run is completed");
+    }
 
 
     private void executeOnAllModules(Map<String, Set<String>> suts, Project project, AsyncGUINotifier notifier,
@@ -218,7 +298,12 @@ public class EvoSuiteExecutor {
             }
         }
         VirtualFileManager.getInstance().asyncRefresh(null);
-        notifier.success("EvoSuite run is completed");
+        if (!params.isTcuEnabled()) {
+            notifier.success("EvoSuite run is completed");
+        } else {
+            Task.Backgroundable task = new TcuTask(project,"EvoSuite",true,null,suts,notifier,params);
+            ProgressManager.getInstance().runProcessWithProgressAsynchronously(task, progressIndicator);
+        }
     }
 
     private class EvoIndicator extends BackgroundableProcessIndicator{
@@ -247,7 +332,45 @@ public class EvoSuiteExecutor {
 
     }
 
+    private class TcuTask extends Task.Backgroundable{
 
+        private final Map<String, Set<String>>  suts;
+        private final AsyncGUINotifier notifier;
+        private final EvoParameters params;
+
+        public TcuTask(@Nullable Project project,
+                       @Nls(capitalization = Nls.Capitalization.Title) @NotNull String title,
+                       boolean canBeCancelled,
+                       @Nullable PerformInBackgroundOption backgroundOption,
+                       Map<String, Set<String>> suts,  AsyncGUINotifier notifier, EvoParameters params) {
+            super(project, title, canBeCancelled, backgroundOption);
+            this.suts = suts;
+            this.notifier = notifier;
+            this.params = params;
+        }
+
+        @Override
+        public void run(@NotNull ProgressIndicator progressIndicator) {
+
+            running.set(true);
+
+            executeOnTcuModules(suts, getProject(), notifier, params, progressIndicator);
+
+            running.set(false);
+        }
+
+
+        @Override
+        public void onCancel(){
+            notifier.printOnConsole("\n\n\nTest Case Classifier run has been cancelled\n");
+            running.set(false);
+        }
+
+        @Override
+        public void onSuccess(){
+            running.set(false);
+        }
+    }
 
     private class EvoTask extends Task.Backgroundable{
 
